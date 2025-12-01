@@ -14,17 +14,14 @@ services:
     volumes:
       - cassandra_data:/var/lib/cassandra
     healthcheck:
-      test: ["CMD-SHELL", "nodetool status | grep -q 'UN' || exit 1"]
-      interval: 10s
-      timeout: 10s
-      retries: 30
-      start_period: 90s
-    networks:
-      - url_shortener_network
+      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
 
   shorten_service:
     build: ./shorten_service
-    container_name: django_app
+    container_name: shorten_service
     command: sh -c "python app/migration_runner.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./shorten_service:/app
@@ -34,14 +31,26 @@ services:
       cassandra:
         condition: service_healthy
     environment:
-      - CASSANDRA_HOST=cassandra
-      - CASSANDRA_PORT=9042
-    networks:
-      - url_shortener_network
+      CASSANDRA_HOST: cassandra_db
+      CASSANDRA_PORT: 9042
+      CASSANDRA_USER: cassandra
+      CASSANDRA_PASS: cassandra
+      CASSANDRA_KEYSPACE: url_shortener
+
+  redirect_service:
+    build: ./redirect_service
+    container_name: redirect_service
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+    environment:
+      CASSANDRA_HOST: cassandra_db
+      CASSANDRA_PORT: 9042
+      CASSANDRA_USER: cassandra
+      CASSANDRA_PASS: cassandra
+      CASSANDRA_KEYSPACE: url_shortener
 
 volumes:
   cassandra_data:
-
-networks:
-  url_shortener_network:
-    driver: bridge

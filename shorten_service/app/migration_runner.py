@@ -3,7 +3,7 @@ from cassandra_connection import CassandraClient
 
 MIGRATIONS_DIR = os.path.join(os.path.dirname(__file__), "migrations")
 
-KEYSPACE = "url_shortener"
+KEYSPACE = os.getenv("CASSANDRA_KEYSPACE", "url_shortener")
 
 def run_migrations():
     session = CassandraClient.get_session()
