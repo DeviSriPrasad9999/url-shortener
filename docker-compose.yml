@@ -2,9 +2,6 @@ services:
   cassandra:
     image: cassandra:latest
     container_name: cassandra_db
-    ports:
-      - "9042:9042"
-      - "9160:9160"
     environment:
       - CASSANDRA_CLUSTER_NAME=MyCluster
       - CASSANDRA_DC=datacenter1
@@ -25,8 +22,6 @@ services:
     command: sh -c "python app/migration_runner.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./shorten_service:/app
-    ports:
-      - "8000:8000"
     depends_on:
       cassandra:
         condition: service_healthy
@@ -43,14 +38,22 @@ services:
     depends_on:
       cassandra:
         condition: service_healthy
-    ports:
-      - "8001:8001"
     environment:
       CASSANDRA_HOST: cassandra_db
       CASSANDRA_PORT: 9042
       CASSANDRA_USER: cassandra
       CASSANDRA_PASS: cassandra
       CASSANDRA_KEYSPACE: url_shortener
+
+  api_gateway:
+    build: ./api_gateway
+    container_name: api_gateway
+    ports:
+      - 9000:80
+    depends_on:
+      - shorten_service
+      - redirect_service
+
 
 volumes:
   cassandra_data:
