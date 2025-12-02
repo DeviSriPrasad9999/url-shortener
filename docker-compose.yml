@@ -1,20 +1,56 @@
+version: "3.9"
+
+x-cassandra-env: &cassandra-env
+  CASSANDRA_CLUSTER_NAME: Url_Shortener
+  CASSANDRA_DC: datacenter1
+  CASSANDRA_RACK: rack1
+  CASSANDRA_NUM_TOKENS: 256
+
+x-cassandra-common: &cassandra-common
+  image: cassandra:latest
+  networks:
+    - url_net
+
 services:
-  cassandra:
-    image: cassandra:latest
-    container_name: cassandra_db
+  cassandra-node1:
+    <<: *cassandra-common
+    container_name: cassandra-node1
     environment:
-      - CASSANDRA_CLUSTER_NAME=Url_Shortener
-      - CASSANDRA_DC=datacenter1
-      - CASSANDRA_RACK=rack1
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-      - CASSANDRA_NUM_TOKENS=128
+      <<: *cassandra-env
+      CASSANDRA_SEEDS: cassandra-node1
     volumes:
-      - cassandra_data:/var/lib/cassandra
+      - cassandra_data1:/var/lib/cassandra
     healthcheck:
-      test: ["CMD", "cqlsh", "-e", "describe keyspaces"]
-      interval: 5s
+      test: ["CMD", "cqlsh", "-e", "DESCRIBE keyspaces"]
+      interval: 10s
       timeout: 5s
-      retries: 60
+      retries: 20
+
+  cassandra-node2:
+    <<: *cassandra-common
+    container_name: cassandra-node2
+    depends_on:
+      cassandra-node1:
+        condition: service_healthy
+    environment:
+      <<: *cassandra-env
+      CASSANDRA_SEEDS: cassandra-node1
+    volumes:
+      - cassandra_data2:/var/lib/cassandra
+
+  cassandra-node3:
+    <<: *cassandra-common
+    container_name: cassandra-node3
+    depends_on:
+      cassandra-node1:
+        condition: service_healthy
+      cassandra-node2:
+        condition: service_started
+    environment:
+      <<: *cassandra-env
+      CASSANDRA_SEEDS: cassandra-node1
+    volumes:
+      - cassandra_data3:/var/lib/cassandra
 
   shorten_service:
     build: ./shorten_service
@@ -22,11 +58,17 @@ services:
     command: sh -c "python app/migration_runner.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./shorten_service:/app
+    networks:
+      - url_net
     depends_on:
-      cassandra:
+      cassandra-node1:
         condition: service_healthy
+      cassandra-node2:
+        condition: service_started
+      cassandra-node3:
+        condition: service_started
     environment:
-      CASSANDRA_HOST: cassandra_db
+      CASSANDRA_HOST: "cassandra-node1,cassandra-node2,cassandra-node3"
       CASSANDRA_PORT: 9042
       CASSANDRA_USER: cassandra
       CASSANDRA_PASS: cassandra
@@ -35,11 +77,13 @@ services:
   redirect_service:
     build: ./redirect_service
     container_name: redirect_service
+    networks:
+      - url_net
     depends_on:
-      cassandra:
-        condition: service_healthy
+      shorten_service:
+        condition: service_started
     environment:
-      CASSANDRA_HOST: cassandra_db
+      CASSANDRA_HOST: "cassandra-node1,cassandra-node2,cassandra-node3"
       CASSANDRA_PORT: 9042
       CASSANDRA_USER: cassandra
       CASSANDRA_PASS: cassandra
@@ -48,12 +92,18 @@ services:
   api_gateway:
     build: ./api_gateway
     container_name: api_gateway
+    networks:
+      - url_net
     ports:
-      - 9000:80
+      - "9000:80"
     depends_on:
       - shorten_service
       - redirect_service
 
+networks:
+  url_net:
 
 volumes:
-  cassandra_data:
+  cassandra_data1:
+  cassandra_data2:
+  cassandra_data3:
