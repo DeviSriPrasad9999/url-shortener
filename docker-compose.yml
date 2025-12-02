@@ -3,7 +3,7 @@ services:
     image: cassandra:latest
     container_name: cassandra_db
     environment:
-      - CASSANDRA_CLUSTER_NAME=MyCluster
+      - CASSANDRA_CLUSTER_NAME=Url_Shortener
       - CASSANDRA_DC=datacenter1
       - CASSANDRA_RACK=rack1
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch

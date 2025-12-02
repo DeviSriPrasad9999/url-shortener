@@ -31,14 +31,6 @@ class CassandraClient:
 
         session = cluster.connect()
 
-        session.execute(f"""
-            CREATE KEYSPACE IF NOT EXISTS {keyspace}
-            WITH REPLICATION = {{
-                'class': 'SimpleStrategy',
-                'replication_factor': 1
-            }};
-        """)
-
         # Now connect to the keyspace
         cls._session = cluster.connect(keyspace)
         return cls._session
