@@ -1,0 +1,77 @@
+version: "3.9"
+
+x-cassandra-env: &cassandra-env
+  CASSANDRA_CLUSTER_NAME: Url_Shortener
+  CASSANDRA_DC: datacenter1
+  CASSANDRA_RACK: rack1
+  CASSANDRA_NUM_TOKENS: 256
+
+x-cassandra-common: &cassandra-common
+  image: cassandra:latest
+  networks:
+    - url_net
+
+services:
+  cassandra-node1:
+    <<: *cassandra-common
+    container_name: cassandra-node1
+    environment:
+      <<: *cassandra-env
+      CASSANDRA_SEEDS: cassandra-node1
+    volumes:
+      - cassandra_data1:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "DESCRIBE keyspaces"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  shorten_service:
+    build: ./shorten_service
+    container_name: shorten_service
+    command: sh -c "python app/migration_runner.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    volumes:
+      - ./shorten_service:/app
+    networks:
+      - url_net
+    depends_on:
+      cassandra-node1:
+        condition: service_healthy
+    environment:
+      CASSANDRA_HOST: "cassandra-node1"
+      CASSANDRA_PORT: 9042
+      CASSANDRA_USER: cassandra
+      CASSANDRA_PASS: cassandra
+      CASSANDRA_KEYSPACE: url_shortener
+
+  redirect_service:
+    build: ./redirect_service
+    container_name: redirect_service
+    networks:
+      - url_net
+    depends_on:
+      shorten_service:
+        condition: service_started
+    environment:
+      CASSANDRA_HOST: "cassandra-node1"
+      CASSANDRA_PORT: 9042
+      CASSANDRA_USER: cassandra
+      CASSANDRA_PASS: cassandra
+      CASSANDRA_KEYSPACE: url_shortener
+
+  api_gateway:
+    build: ./api_gateway
+    container_name: api_gateway
+    networks:
+      - url_net
+    ports:
+      - "9000:80"
+    depends_on:
+      - shorten_service
+      - redirect_service
+
+networks:
+  url_net:
+
+volumes:
+  cassandra_data1:
