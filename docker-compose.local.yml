@@ -4,7 +4,7 @@ x-cassandra-env: &cassandra-env
   CASSANDRA_CLUSTER_NAME: Url_Shortener
   CASSANDRA_DC: datacenter1
   CASSANDRA_RACK: rack1
-  CASSANDRA_NUM_TOKENS: 256
+  CASSANDRA_NUM_TOKENS: 128
 
 x-cassandra-common: &cassandra-common
   image: cassandra:latest
@@ -12,14 +12,14 @@ x-cassandra-common: &cassandra-common
     - url_net
 
 services:
-  cassandra-node1:
+  cassandra-node:
     <<: *cassandra-common
-    container_name: cassandra-node1
+    container_name: cassandra-node
     environment:
       <<: *cassandra-env
-      CASSANDRA_SEEDS: cassandra-node1
+      CASSANDRA_SEEDS: cassandra-node
     volumes:
-      - cassandra_data1:/var/lib/cassandra
+      - cassandra_data:/var/lib/cassandra
     healthcheck:
       test: ["CMD", "cqlsh", "-e", "DESCRIBE keyspaces"]
       interval: 10s
@@ -28,17 +28,19 @@ services:
 
   shorten_service:
     build: ./shorten_service
-    container_name: shorten_service
     command: sh -c "python app/migration_runner.py && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    container_name: shorten_service
     volumes:
       - ./shorten_service:/app
     networks:
       - url_net
+    ports:
+      - "8000:8000"
     depends_on:
-      cassandra-node1:
+      cassandra-node:
         condition: service_healthy
     environment:
-      CASSANDRA_HOST: "cassandra-node1"
+      CASSANDRA_HOST: "cassandra-node"
       CASSANDRA_PORT: 9042
       CASSANDRA_USER: cassandra
       CASSANDRA_PASS: cassandra
@@ -50,14 +52,16 @@ services:
     networks:
       - url_net
     depends_on:
-      shorten_service:
-        condition: service_started
+      cassandra-node:
+        condition: service_healthy
     environment:
-      CASSANDRA_HOST: "cassandra-node1"
+      CASSANDRA_HOST: "cassandra-node"
       CASSANDRA_PORT: 9042
       CASSANDRA_USER: cassandra
       CASSANDRA_PASS: cassandra
       CASSANDRA_KEYSPACE: url_shortener
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
 
   api_gateway:
     build: ./api_gateway
@@ -70,8 +74,15 @@ services:
       - shorten_service
       - redirect_service
 
+  redis:
+    image: redis:latest
+    container_name: redis_db
+    restart: unless-stopped
+    networks:
+      - url_net
+
 networks:
   url_net:
 
 volumes:
-  cassandra_data1:
+  cassandra_data:
