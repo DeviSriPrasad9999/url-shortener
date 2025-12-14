@@ -69,3 +69,4 @@ htmlcov/
 .dmypy.json
 dmypy.json
 
+k6-results/

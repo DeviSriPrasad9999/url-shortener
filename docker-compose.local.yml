@@ -1,60 +1,67 @@
-version: "3.9"
-
 x-cassandra-env: &cassandra-env
   CASSANDRA_CLUSTER_NAME: Url_Shortener
-  CASSANDRA_DC: datacenter1
-  CASSANDRA_RACK: rack1
+  CASSANDRA_DC: DC1
+  CASSANDRA_RACK: RAC1
   CASSANDRA_NUM_TOKENS: 16
-
-x-cassandra-common: &cassandra-common
-  image: cassandra:latest
-  networks:
-    - url_net
+  CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+  MAX_HEAP_SIZE: 512M
+  HEAP_NEWSIZE: 100M
 
 services:
-  cassandra-node:
-    <<: *cassandra-common
-    container_name: cassandra-node
+  cassandra-node1:
+    image: cassandra:latest
+    container_name: cassandra-node1
     environment:
       <<: *cassandra-env
-      CASSANDRA_SEEDS: cassandra-node
+      CASSANDRA_SEEDS: cassandra-node1
+      CASSANDRA_BROADCAST_ADDRESS: cassandra-node1
     volumes:
-      - cassandra_data:/var/lib/cassandra
-    healthcheck:
-      test: ["CMD", "cqlsh", "-e", "DESCRIBE keyspaces"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
+      - cassandra_data_1:/var/lib/cassandra
+    networks: [url_net]
+
+  cassandra-node2:
+    image: cassandra:latest
+    container_name: cassandra-node2
+    environment:
+      <<: *cassandra-env
+      CASSANDRA_SEEDS: cassandra-node1
+      CASSANDRA_BROADCAST_ADDRESS: cassandra-node2
+    volumes:
+      - cassandra_data_2:/var/lib/cassandra
+    networks: [url_net]
+
+  cassandra-node3:
+    image: cassandra:latest
+    container_name: cassandra-node3
+    environment:
+      <<: *cassandra-env
+      CASSANDRA_SEEDS: cassandra-node1
+      CASSANDRA_BROADCAST_ADDRESS: cassandra-node3
+    volumes:
+      - cassandra_data_3:/var/lib/cassandra
+    networks: [url_net]
 
   shorten_service:
     build: ./shorten_service
     command: sh -c "python -m app.db.bootstrap && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./shorten_service:/app
-    networks:
-      - url_net
+    networks: [url_net]
     depends_on:
-      cassandra-node:
-        condition: service_healthy
+      - cassandra-node1
     environment:
-      CASSANDRA_HOST: "cassandra-node"
+      CASSANDRA_HOSTS: cassandra-node1,cassandra-node2,cassandra-node3
       CASSANDRA_PORT: 9042
-      CASSANDRA_USER: cassandra
-      CASSANDRA_PASS: cassandra
       CASSANDRA_KEYSPACE: url_shortener
 
   redirect_service:
     build: ./redirect_service
-    networks:
-      - url_net
+    networks: [url_net]
     depends_on:
-      cassandra-node:
-        condition: service_healthy
+      - cassandra-node1
     environment:
-      CASSANDRA_HOST: "cassandra-node"
+      CASSANDRA_HOSTS: cassandra-node1,cassandra-node2,cassandra-node3
       CASSANDRA_PORT: 9042
-      CASSANDRA_USER: cassandra
-      CASSANDRA_PASS: cassandra
       CASSANDRA_KEYSPACE: url_shortener
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -62,8 +69,7 @@ services:
   api_gateway:
     build: ./api_gateway
     container_name: api_gateway
-    networks:
-      - url_net
+    networks: [url_net]
     ports:
       - "9000:80"
     depends_on:
@@ -74,14 +80,14 @@ services:
     image: redis:latest
     container_name: redis_db
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
-    restart: unless-stopped
     volumes:
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
-    networks:
-      - url_net
+    networks: [url_net]
 
 networks:
   url_net:
 
 volumes:
-  cassandra_data:
+  cassandra_data_1:
+  cassandra_data_2:
+  cassandra_data_3:

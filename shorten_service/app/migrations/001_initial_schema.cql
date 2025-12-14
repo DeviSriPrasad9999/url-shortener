@@ -1,7 +1,7 @@
 CREATE KEYSPACE IF NOT EXISTS url_shortener
 WITH REPLICATION = {
-    'class': 'SimpleStrategy',
-    'replication_factor': 3
+    'class': 'NetworkTopologyStrategy',
+    'DC1': 3
 };
 
 CREATE TABLE IF NOT EXISTS url_shortener.url_map (
