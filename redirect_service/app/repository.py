@@ -4,8 +4,8 @@ from .redis_client import redis_client
 from typing import Optional
 
 CACHE_PREFIX = "url:"
-CACHE_TTL_SECONDS = 60 * 60 * 24
 NEGATIVE_CACHE_TTL = 60
+NEGATIVE_CACHE_VALUE = "__NOT_FOUND__"
 
 class URLRepository:
     
@@ -22,7 +22,7 @@ class URLRepository:
             cached = None
         
         if cached is not None:
-            if cached == "__NOT_FOUND__":
+            if cached == NEGATIVE_CACHE_VALUE:
                 return None
             return ShortURL(short_code=short_code, long_url=cached, created_at=None)
         
@@ -39,14 +39,14 @@ class URLRepository:
         
         if not row:
             try:
-                redis_client.set(key,"__NOT_FOUND", ex=NEGATIVE_CACHE_TTL)
+                redis_client.set(key,NEGATIVE_CACHE_VALUE, ex=NEGATIVE_CACHE_TTL)
             except Exception:
                 pass
             return None
 
         long_url = row.long_url
         try:
-            redis_client.set(key,long_url,ex=CACHE_TTL_SECONDS)
+            redis_client.set(key,long_url)
         except Exception:
             pass
 

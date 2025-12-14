@@ -1,35 +1,25 @@
 from datetime import datetime
-from .cassandra_connection import CassandraClient
+from .db.cassandra_connection import CassandraClient
 from .models import ShortURL
+from .redis_client import redis_client
+
+CACHE_PREFIX = "url:"
+CACHE_TTL_SECONDS = 60 * 60 * 24  # 24 hours
+NEGATIVE_CACHE_TTL = 60  # 1 minute
 
 class URLRepository:
 
     @staticmethod
-    def save(short_code:str, long_url:str):
-        session = CassandraClient.get_session()
+    def _cache_key(code: str) -> str:
+        return f"{CACHE_PREFIX}{code}"
 
+    @staticmethod
+    def save(short_code:str, long_url:str):
+        session = CassandraClient.get_keyspace_session()
+        key = URLRepository._cache_key(short_code)
         query = """
             INSERT INTO url_map (short_code,long_url, created_at)
             VALUES (%s,%s,toTimestamp(now()));
         """
         session.execute(query,(short_code,long_url))
-
-    @staticmethod
-    def get(short_code:str):
-        session = CassandraClient.get_session()
-
-        query = """
-            SELECT short_code, long_url,created_at
-            FROM url_map
-            WHERE short_code=%s;
-        """
-        row = session.execute(query,(short_code)).one()
-
-        if not row:
-            return None
-
-        return ShortURL(
-            short_code=row.short_code,
-            long_url=row.long_url,
-            created_at=row.created_at
-        )
+        redis_client.set(key,long_url,ex=CACHE_TTL_SECONDS)
