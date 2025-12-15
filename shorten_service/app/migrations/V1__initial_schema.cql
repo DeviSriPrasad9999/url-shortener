@@ -9,9 +9,3 @@ CREATE TABLE IF NOT EXISTS url_shortener.url_map (
     long_url text,
     created_at timestamp
 );
-
-
-CREATE TABLE IF NOT EXISTS url_shortener.schema_migrations (
-    version text PRIMARY KEY,
-    applied_at timestamp
-);

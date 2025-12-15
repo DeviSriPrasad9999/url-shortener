@@ -18,6 +18,11 @@ services:
     volumes:
       - cassandra_data_1:/var/lib/cassandra
     networks: [url_net]
+    healthcheck:
+      test: ["CMD", "cqlsh", "-e", "DESCRIBE keyspaces"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
 
   cassandra-node2:
     image: cassandra:latest
@@ -43,12 +48,13 @@ services:
 
   shorten_service:
     build: ./shorten_service
-    command: sh -c "python -m app.db.bootstrap && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    command: sh -c "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./shorten_service:/app
     networks: [url_net]
     depends_on:
-      - cassandra-node1
+      cassandra-node1:
+        condition: service_started
     environment:
       CASSANDRA_HOSTS: cassandra-node1,cassandra-node2,cassandra-node3
       CASSANDRA_PORT: 9042
@@ -58,7 +64,8 @@ services:
     build: ./redirect_service
     networks: [url_net]
     depends_on:
-      - cassandra-node1
+      cassandra-node1:
+        condition: service_started
     environment:
       CASSANDRA_HOSTS: cassandra-node1,cassandra-node2,cassandra-node3
       CASSANDRA_PORT: 9042
@@ -83,6 +90,18 @@ services:
     volumes:
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
     networks: [url_net]
+    
+  flyway:
+    image: flyway/flyway
+    command: -configFiles=/flyway/conf/flyway.conf migrate
+    depends_on:
+      cassandra-node1:
+        condition: service_healthy
+    volumes:
+      - ./flyway/flyway.conf:/flyway/conf/flyway.conf
+      - ./shorten_service/app/migrations:/flyway/sql
+    networks: [url_net]
+
 
 networks:
   url_net:
