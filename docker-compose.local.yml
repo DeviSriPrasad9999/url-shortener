@@ -7,6 +7,8 @@ x-cassandra-env: &cassandra-env
   MAX_HEAP_SIZE: 512M
   HEAP_NEWSIZE: 100M
 
+x-cassandra-hosts: &cassandra-hosts cassandra-node1
+
 services:
   cassandra-node1:
     image: cassandra:latest
@@ -24,27 +26,27 @@ services:
       timeout: 5s
       retries: 20
 
-  cassandra-node2:
-    image: cassandra:latest
-    container_name: cassandra-node2
-    environment:
-      <<: *cassandra-env
-      CASSANDRA_SEEDS: cassandra-node1
-      CASSANDRA_BROADCAST_ADDRESS: cassandra-node2
-    volumes:
-      - cassandra_data_2:/var/lib/cassandra
-    networks: [url_net]
+  # cassandra-node2:
+  #   image: cassandra:latest
+  #   container_name: cassandra-node2
+  #   environment:
+  #     <<: *cassandra-env
+  #     CASSANDRA_SEEDS: cassandra-node1
+  #     CASSANDRA_BROADCAST_ADDRESS: cassandra-node2
+  #   volumes:
+  #     - cassandra_data_2:/var/lib/cassandra
+  #   networks: [url_net]
 
-  cassandra-node3:
-    image: cassandra:latest
-    container_name: cassandra-node3
-    environment:
-      <<: *cassandra-env
-      CASSANDRA_SEEDS: cassandra-node1
-      CASSANDRA_BROADCAST_ADDRESS: cassandra-node3
-    volumes:
-      - cassandra_data_3:/var/lib/cassandra
-    networks: [url_net]
+  # cassandra-node3:
+  #   image: cassandra:latest
+  #   container_name: cassandra-node3
+  #   environment:
+  #     <<: *cassandra-env
+  #     CASSANDRA_SEEDS: cassandra-node1
+  #     CASSANDRA_BROADCAST_ADDRESS: cassandra-node3
+  #   volumes:
+  #     - cassandra_data_3:/var/lib/cassandra
+  #   networks: [url_net]
 
   shorten_service:
     build: ./shorten_service
@@ -56,7 +58,7 @@ services:
       cassandra-node1:
         condition: service_started
     environment:
-      CASSANDRA_HOSTS: cassandra-node1,cassandra-node2,cassandra-node3
+      CASSANDRA_HOSTS: *cassandra-hosts
       CASSANDRA_PORT: 9042
       CASSANDRA_KEYSPACE: url_shortener
 
@@ -67,7 +69,7 @@ services:
       cassandra-node1:
         condition: service_started
     environment:
-      CASSANDRA_HOSTS: cassandra-node1,cassandra-node2,cassandra-node3
+      CASSANDRA_HOSTS: *cassandra-hosts
       CASSANDRA_PORT: 9042
       CASSANDRA_KEYSPACE: url_shortener
       REDIS_HOST: redis
@@ -83,6 +85,28 @@ services:
       - shorten_service
       - redirect_service
 
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:0.10.0
+    container_name: nginx_exporter
+    command:
+      - "--nginx.scrape-uri=http://api_gateway/nginx_status"
+    ports:
+      - "9113:9113"
+    depends_on:
+      - api_gateway
+    networks: [url_net]
+    
+
+  cassandra-exporter:
+    image: criteord/cassandra_exporter:latest
+    container_name: cassandra_exporter
+    environment:
+      - CASSANDRA_HOST=cassandra-node1
+      - CASSANDRA_PORT=9042
+    ports:
+      - "8080:8080"
+    networks: [url_net]
+
   redis:
     image: redis:latest
     container_name: redis_db
@@ -90,7 +114,17 @@ services:
     volumes:
       - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
     networks: [url_net]
-    
+
+  redis-exporter:
+    image: oliver006/redis_exporter
+    container_name: redis_exporter
+    command: ["--redis.addr=redis:6379"]
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+    networks: [url_net]
+
   flyway:
     image: flyway/flyway
     command: -configFiles=/flyway/conf/flyway.conf migrate
@@ -102,6 +136,25 @@ services:
       - ./shorten_service/app/migrations:/flyway/sql
     networks: [url_net]
 
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks: [url_net]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECUTIRY_ADMIN_PASSWORD=admin
+    networks: [url_net]
 
 networks:
   url_net:

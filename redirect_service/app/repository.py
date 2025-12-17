@@ -26,7 +26,7 @@ class URLRepository:
                 return None
             return ShortURL(short_code=short_code, long_url=cached, created_at=None)
         
-        session = CassandraClient.get_session()
+        session = CassandraClient.get_keyspace_session()
         query = """
             SELECT short_code, long_url,created_at
             FROM url_map
