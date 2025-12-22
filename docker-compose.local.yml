@@ -17,6 +17,12 @@ services:
       <<: *cassandra-env
       CASSANDRA_SEEDS: cassandra-node1
       CASSANDRA_BROADCAST_ADDRESS: cassandra-node1
+      JVM_OPTS: >
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Dcom.sun.management.jmxremote.port=7199
+        -Dcom.sun.management.jmxremote.rmi.port=7199
+        -Djava.rmi.server.hostname=cassandra-node1
     volumes:
       - cassandra_data_1:/var/lib/cassandra
     networks: [url_net]
@@ -96,16 +102,19 @@ services:
       - api_gateway
     networks: [url_net]
     
-
   cassandra-exporter:
     image: criteord/cassandra_exporter:latest
-    container_name: cassandra_exporter
-    environment:
-      - CASSANDRA_HOST=cassandra-node1
-      - CASSANDRA_PORT=9042
+    container_name: cassandra-exporter
+    volumes:
+      - ./cassandra-exporter.yml:/config.yml
+    command: ["java", "-jar", "/opt/cassandra_exporter/cassandra_exporter.jar", "/config.yml"]
     ports:
       - "8080:8080"
-    networks: [url_net]
+    networks:
+      - url_net
+    depends_on:
+      cassandra-node1:
+        condition: service_healthy
 
   redis:
     image: redis:latest
@@ -136,11 +145,24 @@ services:
       - ./shorten_service/app/migrations:/flyway/sql
     networks: [url_net]
 
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    ports:
+      - "8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks: [url_net]
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
     ports:
       - "9090:9090"
     networks: [url_net]
@@ -154,7 +176,10 @@ services:
       - "3000:3000"
     environment:
       - GF_SECUTIRY_ADMIN_PASSWORD=admin
-    networks: [url_net]
+    networks: [url_net] 
+    volumes:
+      - grafana_data:/var/lib/grafana
+
 
 networks:
   url_net:
@@ -163,3 +188,5 @@ volumes:
   cassandra_data_1:
   cassandra_data_2:
   cassandra_data_3:
+  grafana_data: 
+  prometheus_data:

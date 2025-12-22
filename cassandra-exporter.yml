@@ -1,0 +1,20 @@
+host: cassandra-node1:7199
+ssl: False
+user: cassandra
+password: cassandra
+
+listenAddress: 0.0.0.0
+listenPort: 8080
+
+blacklist:
+  # filter out uninteresting or expensive metrics
+  - .*:999thpercentile
+  - .*:95thpercentile
+  - .*:fifteenminuterate
+  - .*:fiveminuterate
+  - .*:stddev
+  - org:apache:cassandra:db:.*
+
+maxScrapFrequencyInSec:
+  30:
+    - .*

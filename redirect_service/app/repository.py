@@ -35,11 +35,12 @@ class URLRepository:
         try:
             row = session.execute(query,(short_code,)).one()
         except Exception as e:
-            return None
+            raise RuntimeError("URL not found – forcing 5xx for testing")
         
         if not row:
             try:
-                redis_client.set(key,NEGATIVE_CACHE_VALUE, ex=NEGATIVE_CACHE_TTL)
+                # redis_client.set(key,NEGATIVE_CACHE_VALUE, ex=NEGATIVE_CACHE_TTL)
+                pass
             except Exception:
                 pass
             return None

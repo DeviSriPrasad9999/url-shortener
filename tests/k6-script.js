@@ -2,7 +2,7 @@ import http from 'k6/http';
 import { check, sleep } from 'k6';
 
 export let options = {
-  vus: 2000,
+  vus: 300,
   duration: '30s',
 };
 
@@ -21,7 +21,7 @@ export default function () {
   // }
 
   // let code = JSON.parse(res.body).short_code;
-  let code = 'eHHsA9X';
+  let code = '432432df';
 
   let redirect = http.get(`${BASE}/${code}`, { redirects: 0 });
 
