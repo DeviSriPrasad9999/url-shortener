@@ -151,7 +151,7 @@ Fallback strategies and retries are implemented to maintain availability.
 🐳 Running Locally
 ------------------
 
-    git clone https://github.com/your-username/url-shortener.git  
+    git clone https://github.com/DeviSriPrasad9999/url-shortener.git  
     cd url-shortener 
     docker-compose up --build
 
