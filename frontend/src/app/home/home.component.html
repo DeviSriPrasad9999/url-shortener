@@ -1,0 +1,91 @@
+<div class="home-container">
+  <div class="url-shortener-card">
+    <mat-card appearance="raised" class="main-card">
+      <mat-card-header>
+        <mat-card-title class="card-title">
+          <mat-icon class="title-icon">link</mat-icon>
+          URL Shortener
+        </mat-card-title>
+        <mat-card-subtitle>
+          Transform long URLs into short, shareable links
+        </mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <form [formGroup]="urlForm" (ngSubmit)="onSubmit()" class="url-form">
+          <mat-form-field appearance="outline" class="url-input">
+            <mat-label>Enter your URL</mat-label>
+            <input 
+              matInput 
+              type="url" 
+              placeholder="https://example.com/very-long-url"
+              formControlName="url"
+              required
+            >
+            <mat-icon matSuffix>link</mat-icon>
+            <mat-error *ngIf="urlForm.get('url')?.hasError('required')">
+              URL is required
+            </mat-error>
+            <mat-error *ngIf="urlForm.get('url')?.hasError('pattern')">
+              Please enter a valid URL (http:// or https://)
+            </mat-error>
+          </mat-form-field>
+          
+          <div class="form-actions">
+            <button 
+              mat-raised-button 
+              color="primary" 
+              type="submit"
+              [disabled]="urlForm.invalid || isLoading"
+              class="shorten-btn"
+            >
+              <mat-icon *ngIf="!isLoading">content_cut</mat-icon>
+              <mat-spinner *ngIf="isLoading" diameter="20" class="spinner"></mat-spinner>
+              {{ isLoading ? 'Shortening...' : 'Shorten URL' }}
+            </button>
+            
+            <button 
+              mat-button 
+              type="button"
+              (click)="resetForm()"
+              [disabled]="isLoading || !shortenedUrl"
+              class="reset-btn"
+            >
+              <mat-icon>refresh</mat-icon>
+              Reset
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined" class="result-card" *ngIf="shortenedUrl">
+      <mat-card-content>
+        <div class="result-content">
+          <div class="result-item">
+            <h4>Original URL:</h4>
+            <p class="original-url">{{ originalUrl }}</p>
+          </div>
+          
+          <div class="result-item">
+            <h4>Shortened URL:</h4>
+            <div class="short-url-container">
+              <a [href]="shortenedUrl" target="_blank" class="short-url">
+                {{ shortenedUrl }}
+              </a>
+              <button 
+                mat-icon-button 
+                color="primary"
+                (click)="copyToClipboard()"
+                class="copy-btn"
+                matTooltip="Copy to clipboard"
+              >
+                <mat-icon>content_copy</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

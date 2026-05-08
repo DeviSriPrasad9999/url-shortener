@@ -1,0 +1,141 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Dashboard</h1>
+    <p class="subtitle">Manage your shortened URLs and view analytics</p>
+  </div>
+
+  <!-- Statistics Cards -->
+  <div class="stats-grid">
+    <mat-card appearance="outlined" class="stat-card">
+      <mat-card-content class="stat-content">
+        <div class="stat-icon">
+          <mat-icon>link</mat-icon>
+        </div>
+        <div class="stat-info">
+          <h3>{{ getTotalUrls() }}</h3>
+          <p>Recent links</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined" class="stat-card">
+      <mat-card-content class="stat-content">
+        <div class="stat-icon">
+          <mat-icon>touch_app</mat-icon>
+        </div>
+        <div class="stat-info">
+          <h3>20</h3>
+          <p>Saved locally</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined" class="stat-card">
+      <mat-card-content class="stat-content">
+        <div class="stat-icon">
+          <mat-icon>bar_chart</mat-icon>
+        </div>
+        <div class="stat-info">
+          <h3>{{ getLatestCreatedAt() ? (getLatestCreatedAt() | date:'shortDate') : '-' }}</h3>
+          <p>Latest link</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- URL History Table -->
+  <mat-card appearance="raised" class="table-card">
+    <mat-card-header>
+      <mat-card-title class="table-title">
+        <mat-icon class="title-icon">history</mat-icon>
+        URL History
+      </mat-card-title>
+    </mat-card-header>
+    
+    <mat-card-content>
+      <div class="table-container">
+        <table mat-table [dataSource]="urlHistory" class="url-table">
+          <!-- Short Code Column -->
+          <ng-container matColumnDef="shortCode">
+            <th mat-header-cell *matHeaderCellDef>Short Code</th>
+            <td mat-cell *matCellDef="let url">
+              <a 
+                [href]="url.shortUrl" 
+                target="_blank" 
+                class="short-code-link"
+              >
+                {{ url.shortCode }}
+              </a>
+            </td>
+          </ng-container>
+
+          <!-- Original URL Column -->
+          <ng-container matColumnDef="originalUrl">
+            <th mat-header-cell *matHeaderCellDef>Original URL</th>
+            <td mat-cell *matCellDef="let url" class="original-url-cell">
+              <a [href]="url.originalUrl" target="_blank" class="original-url">
+                {{ url.originalUrl }}
+              </a>
+            </td>
+          </ng-container>
+
+          <!-- Created At Column -->
+          <ng-container matColumnDef="createdAt">
+            <th mat-header-cell *matHeaderCellDef>Created</th>
+            <td mat-cell *matCellDef="let url">
+              {{ url.createdAt | date:'short' }}
+            </td>
+          </ng-container>
+
+          <!-- Actions Column -->
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let url">
+              <div class="action-buttons">
+                <button 
+                  mat-icon-button 
+                  color="primary"
+                  (click)="copyToClipboard(url.shortCode)"
+                  matTooltip="Copy URL"
+                >
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+                
+                <button 
+                  mat-icon-button 
+                  color="accent"
+                  (click)="openUrl(url.shortCode)"
+                  matTooltip="Open URL"
+                >
+                  <mat-icon>open_in_new</mat-icon>
+                </button>
+                
+                <button 
+                  mat-icon-button 
+                  color="warn"
+                  (click)="deleteUrl(url.shortCode)"
+                  matTooltip="Delete URL"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        </table>
+      </div>
+
+      <div class="no-data" *ngIf="urlHistory.length === 0 && !isLoading">
+        <mat-icon class="no-data-icon">link_off</mat-icon>
+        <h3>No URLs yet</h3>
+        <p>Start shortening URLs to see them here</p>
+        <button mat-raised-button color="primary" routerLink="/">
+          <mat-icon>add</mat-icon>
+          Create Short URL
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

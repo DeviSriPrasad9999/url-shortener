@@ -1,0 +1,245 @@
+.dashboard-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 32px;
+
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 300;
+    color: #333;
+    margin: 0 0 8px 0;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: #666;
+    margin: 0;
+  }
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+
+  .stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-content {
+      display: flex;
+      align-items: center;
+      padding: 24px;
+
+      .stat-icon {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 20px;
+
+        mat-icon {
+          font-size: 28px;
+          width: 28px;
+          height: 28px;
+        }
+      }
+
+      .stat-info {
+        flex: 1;
+
+        h3 {
+          font-size: 2rem;
+          font-weight: 600;
+          margin: 0 0 4px 0;
+        }
+
+        p {
+          font-size: 0.9rem;
+          margin: 0;
+          opacity: 0.9;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+      }
+    }
+  }
+}
+
+.table-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  .table-title {
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #333;
+
+    .title-icon {
+      margin-right: 12px;
+      font-size: 1.8rem;
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+    margin: 0 -24px;
+    padding: 0 24px;
+
+    .url-table {
+      width: 100%;
+      min-width: 600px;
+
+      .short-code-link {
+        color: #1976d2;
+        text-decoration: none;
+        font-weight: 500;
+        font-family: 'Courier New', monospace;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+
+      .original-url-cell {
+        max-width: 300px;
+
+        .original-url {
+          color: #666;
+          text-decoration: none;
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+
+          &:hover {
+            color: #1976d2;
+            text-decoration: underline;
+          }
+        }
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 8px;
+      }
+    }
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 48px 24px;
+    color: #666;
+
+    .no-data-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      font-weight: 400;
+      margin: 0 0 8px 0;
+      color: #333;
+    }
+
+    p {
+      font-size: 1rem;
+      margin: 0 0 24px 0;
+    }
+
+    button {
+      min-width: 160px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 0 auto;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 16px;
+  }
+
+  .dashboard-header {
+    h1 {
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+    }
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+
+    .stat-card .stat-content {
+      padding: 20px;
+
+      .stat-icon {
+        width: 50px;
+        height: 50px;
+        margin-right: 16px;
+
+        mat-icon {
+          font-size: 24px;
+          width: 24px;
+          height: 24px;
+        }
+      }
+
+      .stat-info h3 {
+        font-size: 1.5rem;
+      }
+    }
+  }
+
+  .table-card {
+    .table-container {
+      margin: 0 -16px;
+      padding: 0 16px;
+
+      .url-table {
+        min-width: 500px;
+
+        .action-buttons {
+          flex-direction: column;
+          gap: 4px;
+        }
+      }
+    }
+
+    .no-data {
+      padding: 32px 16px;
+    }
+  }
+}

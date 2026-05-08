@@ -58,6 +58,10 @@ htmlcov/
 .tox/
 .hypothesis/
 
+# Frontend
+node_modules/
+.angular/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
