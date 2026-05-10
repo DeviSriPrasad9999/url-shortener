@@ -1,141 +1,135 @@
-<div class="dashboard-container">
+<div class="dashboard">
+  <!-- Page Header -->
   <div class="dashboard-header">
-    <h1>Dashboard</h1>
-    <p class="subtitle">Manage your shortened URLs and view analytics</p>
+    <div>
+      <h1 class="dashboard-title font-sora">My Links</h1>
+      <p class="dashboard-subtitle">Manage and track your shortened URLs</p>
+    </div>
+    <a class="btn-gradient dashboard-cta" routerLink="/" aria-label="Shorten a new URL">
+      <span class="material-symbols-outlined" aria-hidden="true">add</span>
+      Shorten URL
+    </a>
   </div>
 
-  <!-- Statistics Cards -->
-  <div class="stats-grid">
-    <mat-card appearance="outlined" class="stat-card">
-      <mat-card-content class="stat-content">
-        <div class="stat-icon">
-          <mat-icon>link</mat-icon>
-        </div>
-        <div class="stat-info">
-          <h3>{{ getTotalUrls() }}</h3>
-          <p>Recent links</p>
-        </div>
-      </mat-card-content>
-    </mat-card>
+  <!-- Stats Row -->
+  <div class="stats-row" aria-label="Dashboard statistics">
+    <div class="stats-card glass-panel">
+      <span class="material-symbols-outlined stats-card__icon" aria-hidden="true">link</span>
+      <div class="stats-card__info">
+        <span class="stats-card__value font-sora">{{ totalUrls() }}</span>
+        <span class="stats-card__label">Saved Links</span>
+      </div>
+    </div>
 
-    <mat-card appearance="outlined" class="stat-card">
-      <mat-card-content class="stat-content">
-        <div class="stat-icon">
-          <mat-icon>touch_app</mat-icon>
-        </div>
-        <div class="stat-info">
-          <h3>20</h3>
-          <p>Saved locally</p>
-        </div>
-      </mat-card-content>
-    </mat-card>
+    <div class="stats-card glass-panel">
+      <span class="material-symbols-outlined stats-card__icon" aria-hidden="true">schedule</span>
+      <div class="stats-card__info">
+        @if (latestCreatedAt()) {
+          <span class="stats-card__value font-sora">{{ latestCreatedAt() | date:'MMM d' }}</span>
+        } @else {
+          <span class="stats-card__value font-sora">—</span>
+        }
+        <span class="stats-card__label">Latest Link</span>
+      </div>
+    </div>
 
-    <mat-card appearance="outlined" class="stat-card">
-      <mat-card-content class="stat-content">
-        <div class="stat-icon">
-          <mat-icon>bar_chart</mat-icon>
-        </div>
-        <div class="stat-info">
-          <h3>{{ getLatestCreatedAt() ? (getLatestCreatedAt() | date:'shortDate') : '-' }}</h3>
-          <p>Latest link</p>
-        </div>
-      </mat-card-content>
-    </mat-card>
+    <div class="stats-card glass-panel">
+      <span class="material-symbols-outlined stats-card__icon stats-card__icon--limit" aria-hidden="true">storage</span>
+      <div class="stats-card__info">
+        <span class="stats-card__value font-sora">20</span>
+        <span class="stats-card__label">Max Saved Locally</span>
+      </div>
+    </div>
   </div>
 
-  <!-- URL History Table -->
-  <mat-card appearance="raised" class="table-card">
-    <mat-card-header>
-      <mat-card-title class="table-title">
-        <mat-icon class="title-icon">history</mat-icon>
-        URL History
-      </mat-card-title>
-    </mat-card-header>
-    
-    <mat-card-content>
-      <div class="table-container">
-        <table mat-table [dataSource]="urlHistory" class="url-table">
-          <!-- Short Code Column -->
-          <ng-container matColumnDef="shortCode">
-            <th mat-header-cell *matHeaderCellDef>Short Code</th>
-            <td mat-cell *matCellDef="let url">
-              <a 
-                [href]="url.shortUrl" 
-                target="_blank" 
-                class="short-code-link"
-              >
-                {{ url.shortCode }}
-              </a>
-            </td>
-          </ng-container>
+  <!-- Links Table -->
+  <div class="table-wrapper glass-panel-heavy" role="region" aria-label="Shortened URLs">
+    <div class="table-header">
+      <h2 class="table-title">Link History</h2>
+    </div>
 
-          <!-- Original URL Column -->
-          <ng-container matColumnDef="originalUrl">
-            <th mat-header-cell *matHeaderCellDef>Original URL</th>
-            <td mat-cell *matCellDef="let url" class="original-url-cell">
-              <a [href]="url.originalUrl" target="_blank" class="original-url">
-                {{ url.originalUrl }}
-              </a>
-            </td>
-          </ng-container>
-
-          <!-- Created At Column -->
-          <ng-container matColumnDef="createdAt">
-            <th mat-header-cell *matHeaderCellDef>Created</th>
-            <td mat-cell *matCellDef="let url">
-              {{ url.createdAt | date:'short' }}
-            </td>
-          </ng-container>
-
-          <!-- Actions Column -->
-          <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef>Actions</th>
-            <td mat-cell *matCellDef="let url">
-              <div class="action-buttons">
-                <button 
-                  mat-icon-button 
-                  color="primary"
-                  (click)="copyToClipboard(url.shortCode)"
-                  matTooltip="Copy URL"
-                >
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-                
-                <button 
-                  mat-icon-button 
-                  color="accent"
-                  (click)="openUrl(url.shortCode)"
-                  matTooltip="Open URL"
-                >
-                  <mat-icon>open_in_new</mat-icon>
-                </button>
-                
-                <button 
-                  mat-icon-button 
-                  color="warn"
-                  (click)="deleteUrl(url.shortCode)"
-                  matTooltip="Delete URL"
-                >
-                  <mat-icon>delete</mat-icon>
-                </button>
+    @if (urlHistory().length === 0) {
+      <div class="empty-state" role="status">
+        <span class="material-symbols-outlined empty-state__icon" aria-hidden="true">link_off</span>
+        <h3 class="empty-state__heading font-sora">No links yet</h3>
+        <p class="empty-state__body">Start shortening URLs to see them here.</p>
+        <a class="btn-gradient empty-state__cta" routerLink="/">Create your first link</a>
+      </div>
+    } @else {
+      <div class="table-scroll" role="table" aria-label="Shortened URL history">
+        <div class="table-head" role="rowgroup">
+          <div class="table-row table-row--head" role="row">
+            <div class="table-cell table-cell--head" role="columnheader">Short Code</div>
+            <div class="table-cell table-cell--head table-cell--url" role="columnheader">Original URL</div>
+            <div class="table-cell table-cell--head" role="columnheader">Created</div>
+            <div class="table-cell table-cell--head table-cell--actions" role="columnheader">Actions</div>
+          </div>
+        </div>
+        <div class="table-body" role="rowgroup">
+          @for (link of urlHistory(); track link.shortCode) {
+            <div class="table-row" role="row">
+              <div class="table-cell" role="cell">
+                <a
+                  [href]="link.shortUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="link-short-code"
+                  [attr.aria-label]="'Open short URL ' + link.shortCode + ' in new tab'"
+                >{{ link.shortCode }}</a>
               </div>
-            </td>
-          </ng-container>
+              <div class="table-cell table-cell--url" role="cell">
+                <a
+                  [href]="link.originalUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="link-original-url"
+                  [title]="link.originalUrl"
+                  [attr.aria-label]="'Open original URL in new tab'"
+                >{{ link.originalUrl }}</a>
+              </div>
+              <div class="table-cell link-date" role="cell">
+                {{ link.createdAt | date:'MMM d, y' }}
+              </div>
+              <div class="table-cell table-cell--actions" role="cell">
+                <div class="action-group">
+                  <button
+                    type="button"
+                    class="action-btn"
+                    (click)="copyToClipboard(link.shortCode)"
+                    [attr.aria-label]="copySuccess() === link.shortCode ? 'Copied!' : 'Copy short URL'"
+                    [title]="copySuccess() === link.shortCode ? 'Copied!' : 'Copy'"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">
+                      {{ copySuccess() === link.shortCode ? 'check' : 'content_copy' }}
+                    </span>
+                  </button>
 
-          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-          <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-        </table>
-      </div>
+                  <button
+                    type="button"
+                    class="action-btn"
+                    (click)="openUrl(link.shortCode)"
+                    aria-label="Open short URL in new tab"
+                    title="Open"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+                  </button>
 
-      <div class="no-data" *ngIf="urlHistory.length === 0 && !isLoading">
-        <mat-icon class="no-data-icon">link_off</mat-icon>
-        <h3>No URLs yet</h3>
-        <p>Start shortening URLs to see them here</p>
-        <button mat-raised-button color="primary" routerLink="/">
-          <mat-icon>add</mat-icon>
-          Create Short URL
-        </button>
+                  <button
+                    type="button"
+                    class="action-btn action-btn--danger"
+                    (click)="deleteUrl(link.shortCode)"
+                    aria-label="Remove this link"
+                    title="Remove"
+                  >
+                    <span class="material-symbols-outlined" aria-hidden="true">delete</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
       </div>
-    </mat-card-content>
-  </mat-card>
+    }
+  </div>
 </div>
+

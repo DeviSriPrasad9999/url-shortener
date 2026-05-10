@@ -1,13 +1,57 @@
-<mat-toolbar color="primary" class="app-toolbar">
-  <span class="toolbar-title">
-    <mat-icon class="toolbar-icon">link</mat-icon>
-    {{ title }}
-  </span>
-  <div class="toolbar-spacer"></div>
-  <button mat-button routerLink="/">Home</button>
-  <button mat-button routerLink="/dashboard">Dashboard</button>
-</mat-toolbar>
+<a class="skip-link" href="#main-content">Skip to main content</a>
 
-<main class="main-content">
-  <router-outlet></router-outlet>
+<!-- Fixed Void Background -->
+<div class="void-bg grid-bg" aria-hidden="true"></div>
+<div class="void-orb void-orb--cyan" aria-hidden="true"></div>
+<div class="void-orb void-orb--violet" aria-hidden="true"></div>
+
+<!-- Navigation -->
+<header class="nav-shell" role="banner">
+  <div class="nav-inner">
+    <a class="nav-logo" routerLink="/" aria-label="SNIPURL home">
+      SNIPURL
+    </a>
+
+    <nav class="nav-links" aria-label="Primary navigation">
+      <a class="nav-link" href="/#features">Features</a>
+      <a class="nav-link" href="/#analytics">Analytics</a>
+      <a class="nav-link" href="/#developers">Developers</a>
+      <a class="nav-link" routerLink="/dashboard">Dashboard</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a class="btn-glass nav-btn" routerLink="/dashboard">My Links</a>
+      <a class="btn-gradient nav-btn nav-btn--cta" routerLink="/">Get Started</a>
+    </div>
+
+    <button
+      class="nav-hamburger"
+      type="button"
+      [attr.aria-expanded]="mobileMenuOpen()"
+      aria-controls="mobile-menu"
+      aria-label="Toggle navigation menu"
+      (click)="toggleMobileMenu()"
+    >
+      <span class="material-symbols-outlined">{{ mobileMenuOpen() ? 'close' : 'menu' }}</span>
+    </button>
+  </div>
+
+  <!-- Mobile Menu -->
+  @if (mobileMenuOpen()) {
+    <div id="mobile-menu" class="nav-mobile" role="navigation" aria-label="Mobile navigation">
+      <a class="nav-mobile-link" href="/#features" (click)="closeMobileMenu()">Features</a>
+      <a class="nav-mobile-link" href="/#analytics" (click)="closeMobileMenu()">Analytics</a>
+      <a class="nav-mobile-link" href="/#developers" (click)="closeMobileMenu()">Developers</a>
+      <a class="nav-mobile-link" routerLink="/dashboard" (click)="closeMobileMenu()">Dashboard</a>
+      <div class="nav-mobile-actions">
+        <a class="btn-glass nav-btn" routerLink="/dashboard" (click)="closeMobileMenu()">My Links</a>
+        <a class="btn-gradient nav-btn nav-btn--cta" routerLink="/" (click)="closeMobileMenu()">Get Started</a>
+      </div>
+    </div>
+  }
+</header>
+
+<main id="main-content">
+  <router-outlet />
 </main>
+

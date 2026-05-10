@@ -1,88 +1,67 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 
 import { UrlShortenerService } from '../services/url-shortener.service';
 
 @Component({
   selector: 'app-home',
-  standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-    MatTooltipModule
-  ],
   templateUrl: './home.component.html',
-  styleUrl: './home.component.scss'
+  styleUrl: './home.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReactiveFormsModule]
 })
 export class HomeComponent {
-  urlForm: FormGroup;
-  isLoading = false;
-  shortenedUrl = '';
-  originalUrl = '';
+  private readonly fb = inject(FormBuilder);
+  private readonly urlShortenerService = inject(UrlShortenerService);
 
-  constructor(
-    private fb: FormBuilder,
-    private urlShortenerService: UrlShortenerService,
-    private snackBar: MatSnackBar
-  ) {
-    this.urlForm = this.fb.group({
-      url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]]
-    });
+  readonly urlForm = this.fb.group({
+    url: ['', [Validators.required, Validators.pattern(/^https?:\/\/.+/)]]
+  });
+
+  readonly isLoading = signal(false);
+  readonly shortenedUrl = signal('');
+  readonly originalUrl = signal('');
+  readonly copySuccess = signal(false);
+  readonly errorMessage = signal('');
+
+  get urlControl() {
+    return this.urlForm.get('url');
   }
 
   onSubmit(): void {
     if (this.urlForm.invalid) {
+      this.urlForm.markAllAsTouched();
       return;
     }
 
-    this.isLoading = true;
-    this.originalUrl = this.urlForm.get('url')?.value;
-    
-    this.urlShortenerService.shortenUrl(this.originalUrl).subscribe({
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+    this.originalUrl.set(this.urlControl!.value!);
+
+    this.urlShortenerService.shortenUrl(this.originalUrl()).subscribe({
       next: (response) => {
-        this.shortenedUrl = response.shortUrl;
-        this.isLoading = false;
-        this.snackBar.open('URL shortened successfully!', 'Close', {
-          duration: 3000
-        });
+        this.shortenedUrl.set(response.shortUrl);
+        this.isLoading.set(false);
       },
-      error: (error) => {
-        this.isLoading = false;
-        this.snackBar.open('Failed to shorten URL. Please try again.', 'Close', {
-          duration: 3000
-        });
-        console.error('Error shortening URL:', error);
+      error: () => {
+        this.isLoading.set(false);
+        this.errorMessage.set('Failed to shorten URL. Please try again.');
       }
     });
   }
 
   copyToClipboard(): void {
-    navigator.clipboard.writeText(this.shortenedUrl).then(() => {
-      this.snackBar.open('URL copied to clipboard!', 'Close', {
-        duration: 2000
-      });
+    navigator.clipboard.writeText(this.shortenedUrl()).then(() => {
+      this.copySuccess.set(true);
+      setTimeout(() => this.copySuccess.set(false), 2000);
     });
   }
 
-  resetForm(): void {
+  reset(): void {
     this.urlForm.reset();
-    this.shortenedUrl = '';
-    this.originalUrl = '';
+    this.shortenedUrl.set('');
+    this.originalUrl.set('');
+    this.errorMessage.set('');
   }
 }
+

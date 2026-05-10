@@ -1,73 +1,39 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MatCardModule } from '@angular/material/card';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatTableModule } from '@angular/material/table';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { ShortenedUrl, UrlShortenerService } from '../services/url-shortener.service';
 
 @Component({
   selector: 'app-dashboard',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatCardModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTableModule,
-    MatPaginatorModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-    MatTooltipModule,
-    RouterLink
-  ],
   templateUrl: './dashboard.component.html',
-  styleUrl: './dashboard.component.scss'
+  styleUrl: './dashboard.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [DatePipe, RouterLink]
 })
 export class DashboardComponent {
-  displayedColumns: string[] = ['shortCode', 'originalUrl', 'createdAt', 'actions'];
-  isLoading = false;
-  urlHistory: ShortenedUrl[] = [];
+  private readonly urlShortenerService = inject(UrlShortenerService);
 
-  constructor(
-    private snackBar: MatSnackBar,
-    private urlShortenerService: UrlShortenerService
-  ) {
-    this.urlHistory = this.urlShortenerService.getRecentLinks();
-  }
+  readonly urlHistory = signal<ShortenedUrl[]>(this.urlShortenerService.getRecentLinks());
+  readonly totalUrls = computed(() => this.urlHistory().length);
+  readonly latestCreatedAt = computed(() => this.urlHistory()[0]?.createdAt ?? null);
+  readonly copySuccess = signal<string | null>(null);
 
   copyToClipboard(shortCode: string): void {
     const shortUrl = this.urlShortenerService.buildShortUrl(shortCode);
     navigator.clipboard.writeText(shortUrl).then(() => {
-      this.snackBar.open('URL copied to clipboard!', 'Close', {
-        duration: 2000
-      });
+      this.copySuccess.set(shortCode);
+      setTimeout(() => this.copySuccess.set(null), 2000);
     });
   }
 
   openUrl(shortCode: string): void {
-    window.open(this.urlShortenerService.buildShortUrl(shortCode), '_blank');
+    window.open(this.urlShortenerService.buildShortUrl(shortCode), '_blank', 'noopener,noreferrer');
   }
 
   deleteUrl(shortCode: string): void {
     this.urlShortenerService.removeRecentLink(shortCode);
-    this.urlHistory = this.urlHistory.filter(url => url.shortCode !== shortCode);
-    this.snackBar.open('Removed from recent links', 'Close', {
-      duration: 3000
-    });
-  }
-
-  getTotalUrls(): number {
-    return this.urlHistory.length;
-  }
-
-  getLatestCreatedAt(): string | null {
-    return this.urlHistory[0]?.createdAt ?? null;
+    this.urlHistory.update(links => links.filter(url => url.shortCode !== shortCode));
   }
 }
+

@@ -1,91 +1,264 @@
-<div class="home-container">
-  <div class="url-shortener-card">
-    <mat-card appearance="raised" class="main-card">
-      <mat-card-header>
-        <mat-card-title class="card-title">
-          <mat-icon class="title-icon">link</mat-icon>
-          URL Shortener
-        </mat-card-title>
-        <mat-card-subtitle>
-          Transform long URLs into short, shareable links
-        </mat-card-subtitle>
-      </mat-card-header>
-      
-      <mat-card-content>
-        <form [formGroup]="urlForm" (ngSubmit)="onSubmit()" class="url-form">
-          <mat-form-field appearance="outline" class="url-input">
-            <mat-label>Enter your URL</mat-label>
-            <input 
-              matInput 
-              type="url" 
-              placeholder="https://example.com/very-long-url"
-              formControlName="url"
-              required
-            >
-            <mat-icon matSuffix>link</mat-icon>
-            <mat-error *ngIf="urlForm.get('url')?.hasError('required')">
-              URL is required
-            </mat-error>
-            <mat-error *ngIf="urlForm.get('url')?.hasError('pattern')">
-              Please enter a valid URL (http:// or https://)
-            </mat-error>
-          </mat-form-field>
-          
-          <div class="form-actions">
-            <button 
-              mat-raised-button 
-              color="primary" 
-              type="submit"
-              [disabled]="urlForm.invalid || isLoading"
-              class="shorten-btn"
-            >
-              <mat-icon *ngIf="!isLoading">content_cut</mat-icon>
-              <mat-spinner *ngIf="isLoading" diameter="20" class="spinner"></mat-spinner>
-              {{ isLoading ? 'Shortening...' : 'Shorten URL' }}
-            </button>
-            
-            <button 
-              mat-button 
-              type="button"
-              (click)="resetForm()"
-              [disabled]="isLoading || !shortenedUrl"
-              class="reset-btn"
-            >
-              <mat-icon>refresh</mat-icon>
-              Reset
-            </button>
-          </div>
-        </form>
-      </mat-card-content>
-    </mat-card>
-
-    <mat-card appearance="outlined" class="result-card" *ngIf="shortenedUrl">
-      <mat-card-content>
-        <div class="result-content">
-          <div class="result-item">
-            <h4>Original URL:</h4>
-            <p class="original-url">{{ originalUrl }}</p>
-          </div>
-          
-          <div class="result-item">
-            <h4>Shortened URL:</h4>
-            <div class="short-url-container">
-              <a [href]="shortenedUrl" target="_blank" class="short-url">
-                {{ shortenedUrl }}
-              </a>
-              <button 
-                mat-icon-button 
-                color="primary"
-                (click)="copyToClipboard()"
-                class="copy-btn"
-                matTooltip="Copy to clipboard"
-              >
-                <mat-icon>content_copy</mat-icon>
-              </button>
-            </div>
-          </div>
-        </div>
-      </mat-card-content>
-    </mat-card>
+<!-- ── Hero Section ── -->
+<section class="hero" id="hero" aria-labelledby="hero-heading">
+  <!-- Badge -->
+  <div class="hero-badge glass-panel" role="note">
+    <span class="material-symbols-outlined hero-badge__icon" aria-hidden="true">bolt</span>
+    <span>The Fastest Redirection Engine</span>
   </div>
-</div>
+
+  <!-- Headline -->
+  <h1 id="hero-heading" class="hero-title font-sora">
+    Instant Routing.<br>
+    <span class="text-gradient">Zero Friction.</span>
+  </h1>
+
+  <p class="hero-subtitle">
+    Experience light-speed link management with our advanced global edge
+    network. Secure, branded, and instantly actionable.
+  </p>
+
+  <!-- URL Input -->
+  <form
+    [formGroup]="urlForm"
+    (ngSubmit)="onSubmit()"
+    class="hero-form"
+    aria-label="URL shortener"
+  >
+    <div
+      class="url-input-wrapper glass-panel-heavy"
+      [class.url-input-wrapper--error]="urlControl?.invalid && urlControl?.touched"
+    >
+      <span class="material-symbols-outlined url-input-icon" aria-hidden="true">link</span>
+      <input
+        id="url-input"
+        type="url"
+        class="url-input"
+        placeholder="Paste your long URL here..."
+        formControlName="url"
+        autocomplete="url"
+        aria-label="Long URL to shorten"
+        [attr.aria-invalid]="urlControl?.invalid && urlControl?.touched ? true : null"
+        aria-describedby="url-error"
+      >
+      <button
+        type="submit"
+        class="btn-gradient snip-btn"
+        [disabled]="isLoading()"
+        aria-label="Shorten URL"
+      >
+        @if (isLoading()) {
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Shortening…</span>
+        } @else {
+          <span>Snip It</span>
+          <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        }
+      </button>
+    </div>
+
+    @if (urlControl?.invalid && urlControl?.touched) {
+      <p id="url-error" class="input-error" role="alert">
+        @if (urlControl?.hasError('required')) {
+          URL is required.
+        } @else {
+          Please enter a valid URL starting with http:// or https://
+        }
+      </p>
+    }
+
+    @if (errorMessage()) {
+      <p class="input-error" role="alert">{{ errorMessage() }}</p>
+    }
+  </form>
+
+  <!-- Result Card -->
+  @if (shortenedUrl()) {
+    <div class="result-card glass-panel-heavy" role="region" aria-label="Shortened URL result">
+      <div class="result-card__row">
+        <div class="result-card__col">
+          <span class="result-label">Original URL</span>
+          <span class="result-url result-url--original">{{ originalUrl() }}</span>
+        </div>
+        <div class="result-divider" aria-hidden="true"></div>
+        <div class="result-card__col">
+          <span class="result-label">Shortened URL</span>
+          <a
+            [href]="shortenedUrl()"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="result-url result-url--short"
+          >{{ shortenedUrl() }}</a>
+        </div>
+      </div>
+      <div class="result-card__actions">
+        <button
+          type="button"
+          class="btn-gradient result-copy-btn"
+          (click)="copyToClipboard()"
+          [attr.aria-label]="copySuccess() ? 'Copied!' : 'Copy short URL to clipboard'"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">{{ copySuccess() ? 'check' : 'content_copy' }}</span>
+          {{ copySuccess() ? 'Copied!' : 'Copy' }}
+        </button>
+        <button
+          type="button"
+          class="btn-glass result-reset-btn"
+          (click)="reset()"
+          aria-label="Shorten another URL"
+        >
+          <span class="material-symbols-outlined" aria-hidden="true">refresh</span>
+          New
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- Stats Bar -->
+  <div class="hero-stats" aria-label="Service statistics">
+    <div class="hero-stat">
+      <span class="hero-stat__dot animate-pulse-dot" aria-hidden="true"></span>
+      <span>Global Latency: 12ms</span>
+    </div>
+    <div class="hero-stat-divider" aria-hidden="true"></div>
+    <span>99.99% Uptime</span>
+  </div>
+</section>
+
+<!-- ── Speed / "No Lag" Section ── -->
+<section class="speed-section" id="features" aria-labelledby="speed-heading">
+  <div class="speed-visual glass-panel" aria-hidden="true">
+    <div class="speed-track">
+      <div class="speed-track__line"></div>
+      <div class="speed-track__streak animate-streak"></div>
+    </div>
+    <div class="speed-display">
+      <span class="speed-number font-sora">0.01s</span>
+      <span class="speed-label">Average Resolve Time</span>
+    </div>
+  </div>
+
+  <div class="speed-content">
+    <span class="section-eyebrow">Edge Infrastructure</span>
+    <h2 id="speed-heading" class="section-title font-sora">'No Lag' Technology</h2>
+    <p class="section-body">
+      We've deployed routing nodes across 250+ global locations. Your users are
+      redirected from the server closest to them, ensuring an imperceptible
+      transition from click to destination.
+    </p>
+    <ul class="feature-list" aria-label="Features">
+      <li class="feature-list__item">
+        <span class="material-symbols-outlined feature-list__icon" aria-hidden="true">check_circle</span>
+        Anycast Routing Network
+      </li>
+      <li class="feature-list__item">
+        <span class="material-symbols-outlined feature-list__icon" aria-hidden="true">check_circle</span>
+        Optimized DNS Resolution
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ── Cinematic Insights Section ── -->
+<section class="insights-section" id="analytics" aria-labelledby="insights-heading">
+  <div class="insights-header">
+    <h2 id="insights-heading" class="section-title font-sora">Cinematic Insights</h2>
+    <p class="section-body">
+      Real-time click data visualized through stunning, interactive glassmorphic interfaces.
+    </p>
+  </div>
+
+  <div class="insights-panel glass-panel-heavy">
+    <!-- Bar Chart -->
+    <div class="chart-panel glass-panel" aria-label="Engagement over time chart">
+      <div class="chart-header">
+        <span class="chart-label">Engagement Over Time</span>
+        <span class="chart-live glass-panel" aria-label="Live data">Live</span>
+      </div>
+      <div class="chart-bars" role="img" aria-label="Bar chart showing engagement trend over 7 periods">
+        <div class="chart-bar" style="height: 40%" aria-hidden="true"></div>
+        <div class="chart-bar" style="height: 60%" aria-hidden="true"></div>
+        <div class="chart-bar chart-bar--peak" style="height: 85%" aria-hidden="true">
+          <span class="chart-bar__tooltip" aria-hidden="true">842</span>
+        </div>
+        <div class="chart-bar" style="height: 50%" aria-hidden="true"></div>
+        <div class="chart-bar" style="height: 70%" aria-hidden="true"></div>
+        <div class="chart-bar" style="height: 90%" aria-hidden="true"></div>
+        <div class="chart-bar" style="height: 65%" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="insights-stats">
+      <div class="stat-card glass-panel">
+        <span class="stat-card__label">Total Clicks</span>
+        <span class="stat-card__value font-sora">124.5K</span>
+        <span class="stat-card__trend">
+          <span class="material-symbols-outlined" aria-hidden="true">trending_up</span>
+          +14.2% this week
+        </span>
+      </div>
+      <div class="stat-card glass-panel">
+        <span class="stat-card__label">Top Location</span>
+        <div class="stat-card__location">
+          <span class="material-symbols-outlined stat-card__globe" aria-hidden="true">public</span>
+          <span class="stat-card__value font-sora">United States</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Developer API Section ── -->
+<section class="dev-section" id="developers" aria-labelledby="dev-heading">
+  <div class="dev-content">
+    <span class="section-eyebrow section-eyebrow--secondary">For Developers</span>
+    <h2 id="dev-heading" class="section-title font-sora">Integrate in Minutes</h2>
+    <p class="section-body">
+      Our RESTful API is built for scale. Generate, manage, and analyze links
+      programmatically with sub-millisecond response times.
+    </p>
+    <a
+      href="https://api.snipurl.io/docs"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="dev-docs-link"
+      aria-label="Read API documentation (opens in new tab)"
+    >
+      Read Documentation
+      <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+    </a>
+  </div>
+
+  <div class="dev-terminal glass-panel-heavy" role="region" aria-label="API code example">
+    <div class="terminal-header" aria-hidden="true">
+      <span class="terminal-dot"></span>
+      <span class="terminal-dot"></span>
+      <span class="terminal-dot"></span>
+    </div>
+    <pre class="terminal-code"><code><span class="code-cmd">curl</span> -X POST https://api.snipurl.io/v1/links \
+  -H <span class="code-str">"Authorization: Bearer YOUR_API_KEY"</span> \
+  -H <span class="code-str">"Content-Type: application/json"</span> \
+  -d '{{ '{' }}
+    <span class="code-key">"url"</span>: <span class="code-str">"https://example.com/very/long/path"</span>
+  {{ '}' }}'</code></pre>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer class="footer" role="contentinfo">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="footer-logo font-sora">SNIPURL</span>
+      <p class="footer-tagline">© 2024 SNIPURL. Instant Redirection Protocol.</p>
+    </div>
+    <nav class="footer-links" aria-label="Footer navigation">
+      <a href="#" class="footer-link">Terms of Service</a>
+      <a href="#" class="footer-link">Privacy Policy</a>
+    </nav>
+    <nav class="footer-links" aria-label="Support navigation">
+      <a href="#" class="footer-link">API Status</a>
+      <a href="#" class="footer-link">Support</a>
+    </nav>
+  </div>
+</footer>
+
